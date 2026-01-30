@@ -10,6 +10,7 @@ import android.view.View
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.view.WindowManager
 import androidx.annotation.RestrictTo
+import com.oz.android.ads.BuildConfig
 import com.oz.android.ads.R
 import com.oz.android.utils.enums.AdState
 import com.oz.android.ads.oz_ads.OzAds
@@ -32,7 +33,7 @@ abstract class OverlayAds<AdType> @JvmOverloads constructor(
 
     companion object {
         private const val TAG = "AdsOverlayManager"
-        private const val DEFAULT_TIME_GAP = 30000L // 30 seconds
+        private val DEFAULT_TIME_GAP = if (BuildConfig.DEBUG) 3000L else 30000L
 
         /**
          * Global storage for the last closed time.
