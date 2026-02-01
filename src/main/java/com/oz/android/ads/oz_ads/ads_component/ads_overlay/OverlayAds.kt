@@ -33,7 +33,7 @@ abstract class OverlayAds<AdType> @JvmOverloads constructor(
 
     companion object {
         private const val TAG = "AdsOverlayManager"
-        private val DEFAULT_TIME_GAP = if (BuildConfig.DEBUG) 3000L else 30000L
+        private val DEFAULT_TIME_GAP = if (BuildConfig.DEBUG) 30000L else 30000L
 
         /**
          * Global storage for the last closed time.
