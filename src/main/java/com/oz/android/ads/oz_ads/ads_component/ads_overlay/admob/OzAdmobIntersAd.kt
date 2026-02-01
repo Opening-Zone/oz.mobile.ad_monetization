@@ -177,7 +177,6 @@ open class OzAdmobIntersAd @JvmOverloads constructor(
      */
     override fun onAdLoadFailed(key: String, message: String?) {
         super.onAdLoadFailed(key, message)
-        listener?.onNextAction()
     }
 
     /**
