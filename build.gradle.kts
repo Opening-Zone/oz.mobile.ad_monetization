@@ -71,7 +71,7 @@ android {
         androidTestImplementation("androidx.test.espresso:espresso-core:3.7.0")
 
         // Firebase (using BOM for version alignment)
-        implementation(platform("com.google.firebase:firebase-bom:34.9.0"))
+        implementation(platform("com.google.firebase:firebase-bom:34.10.0"))
         implementation("com.google.firebase:firebase-analytics")
     }
 }
