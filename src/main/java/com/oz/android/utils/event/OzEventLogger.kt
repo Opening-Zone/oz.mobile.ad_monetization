@@ -59,7 +59,7 @@ object OzEventLogger {
             putString(FirebaseAnalytics.Param.AD_PLATFORM, "AdMob") // or use mediation logic if needed
             putInt("precision", precision) // Custom param for precision
         }
-        firebaseAnalytics.logEvent(FirebaseAnalytics.Event.AD_IMPRESSION, revenueParams)
+        firebaseAnalytics.logEvent("app_event_impression", revenueParams)
 
         // 3. Log Custom Debug Event (Original behavior with micros)
         // Useful if you have existing charts relying on "valuemicros"

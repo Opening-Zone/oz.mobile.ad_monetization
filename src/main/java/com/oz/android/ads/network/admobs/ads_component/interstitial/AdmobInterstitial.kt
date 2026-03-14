@@ -78,7 +78,6 @@ class AdmobInterstitial(
                     pendingActivity = null
 
                     listener?.onAdFailedToLoad(adError.toOzError())
-                    listener?.onNextAction()
                 }
             }
         )
