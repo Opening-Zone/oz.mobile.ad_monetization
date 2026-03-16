@@ -130,6 +130,7 @@ class AdmobAppOpen(
 
         // Show the ad
         isShowingAd = true
+        listener?.onNextAction()
         currentAd.show(activity)
         Log.d(TAG, "App Open ad displayed")
     }
@@ -195,15 +196,12 @@ class AdmobAppOpen(
                 isLoaded = false
                 isShowingAd = false
                 listener?.onAdFailedToShowFullScreenContent(adError.toOzError())
-                listener?.onNextAction()
-                listener?.onNextAction()
             }
 
             override fun onAdShowedFullScreenContent() {
                 // Called when fullscreen content is shown.
                 Log.d(TAG, "Ad showed fullscreen content")
                 listener?.onAdShowedFullScreenContent()
-                listener?.onNextAction()
             }
 
             override fun onAdImpression() {
