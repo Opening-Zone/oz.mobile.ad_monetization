@@ -79,15 +79,7 @@ class AppResumeInterstitialManager private constructor() :
         if (!adUnitId.isNullOrBlank()) {
             interstitialAd = OzAdmobIntersAd(context).apply {
                 setAdUnitId(TAG, adUnitId!!)
-                listener = object : OzAdListener<AdmobInterstitial>() {
-                    override fun onAdDismissedFullScreenContent() {
-                        Log.d(TAG, "Interstitial ad dismissed")
-                    }
-
-                    override fun onAdFailedToShowFullScreenContent(error: OzAdError) {
-                        Log.e(TAG, "Failed to show interstitial: ${error.message}")
-                    }
-                }
+                listener = createAdListener()
                 loadAd(true)
             }
         }
@@ -97,7 +89,12 @@ class AppResumeInterstitialManager private constructor() :
      * Show interstitial ad
      */
     override fun showAd(activity: Activity, onShowComplete: () -> Unit) {
-        interstitialAd?.show(activity)
+        if (isAdReady()) {
+            interstitialAd?.show(activity)
+        } else {
+            Log.d(TAG, "Ad is not ready or expired. Calling loadThenShow to reload and show.")
+            interstitialAd?.loadThenShow(activity, showOverlay = true)
+        }
         onShowComplete()
     }
 
@@ -122,6 +119,16 @@ class AppResumeInterstitialManager private constructor() :
                 Log.d(TAG, "Interstitial ad clicked - disabling next resume ad")
                 disableAdResumeByClickAction()
                 adListener?.onAdClicked()
+            }
+
+            override fun onAdDismissedFullScreenContent() {
+                Log.d(TAG, "Interstitial ad dismissed")
+                adListener?.onAdDismissedFullScreenContent()
+            }
+
+            override fun onAdFailedToShowFullScreenContent(error: OzAdError) {
+                Log.e(TAG, "Failed to show interstitial: ${error.message}")
+                adListener?.onAdFailedToShowFullScreenContent(error)
             }
         }
     }

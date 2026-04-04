@@ -9,6 +9,7 @@ import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
+import java.lang.ref.WeakReference
 import java.util.Date
 
 /**
@@ -26,7 +27,10 @@ abstract class AppLifecycleAdManager<T : Any> : Application.ActivityLifecycleCal
     private var adLoadTime: Long = 0
 
     // Reference to the current top activity
-    protected var currentActivity: Activity? = null
+    private var currentActivityRef: WeakReference<Activity>? = null
+
+    protected val currentActivity: Activity?
+        get() = currentActivityRef?.get()
 
     // Application reference
     protected lateinit var myApplication: Application
@@ -163,16 +167,17 @@ abstract class AppLifecycleAdManager<T : Any> : Application.ActivityLifecycleCal
 
     // <editor-fold desc="ActivityLifecycleCallbacks Implementation">
     override fun onActivityStarted(activity: Activity) {
-        currentActivity = activity
+        currentActivityRef = java.lang.ref.WeakReference(activity)
     }
 
     override fun onActivityResumed(activity: Activity) {
-        currentActivity = activity
+        currentActivityRef = java.lang.ref.WeakReference(activity)
     }
 
     override fun onActivityDestroyed(activity: Activity) {
         if (currentActivity == activity) {
-            currentActivity = null
+            currentActivityRef?.clear()
+            currentActivityRef = null
         }
     }
 

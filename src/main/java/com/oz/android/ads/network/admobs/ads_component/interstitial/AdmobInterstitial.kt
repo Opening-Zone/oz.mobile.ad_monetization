@@ -13,6 +13,7 @@ import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback
 import com.oz.android.ads.network.admobs.ads_component.AdmobBase
 import com.oz.android.ads.network.admobs.ads_component.toOzError
 import com.oz.android.utils.listener.OzAdListener
+import com.oz.android.utils.OzLoadingDialog
 
 /**
  * Class quản lý interstitial ads từ AdMob
@@ -29,6 +30,7 @@ class AdmobInterstitial(
     private var isLoaded = false
     private var adIsLoading = false
     private var pendingActivity: Activity? = null
+    private var loadTime: Long = 0
 
     companion object {
         private const val TAG = "AdmobInterstitial"
@@ -53,10 +55,12 @@ class AdmobInterstitial(
             AdRequest.Builder().build(),
             object : InterstitialAdLoadCallback() {
                 override fun onAdLoaded(ad: InterstitialAd) {
+                    OzLoadingDialog.hideFullScreenLoadingDialog()
                     Log.d(TAG, "Interstitial ad loaded successfully")
                     interstitialAd = ad
                     isLoaded = true
                     adIsLoading = false
+                    loadTime = System.currentTimeMillis()
                     interstitialAd?.onPaidEventListener = getOnPaidListener(interstitialAd!!.responseInfo)
                     listener?.onAdLoaded(this@AdmobInterstitial)
 
@@ -71,6 +75,7 @@ class AdmobInterstitial(
                 }
 
                 override fun onAdFailedToLoad(adError: LoadAdError) {
+                    OzLoadingDialog.hideFullScreenLoadingDialog()
                     Log.e(TAG, "Interstitial ad failed to load: ${adError.message}")
                     interstitialAd = null
                     isLoaded = false
@@ -97,7 +102,7 @@ class AdmobInterstitial(
      */
     fun show(activity: Activity) {
         val currentAd = interstitialAd
-        if (currentAd == null) {
+        if (currentAd == null || isAdExpired()) {
             Log.w(TAG, "InterstitialAd is null. Call load() first")
             pendingActivity = activity
             return
@@ -130,9 +135,23 @@ class AdmobInterstitial(
     /**
      * Load quảng cáo và tự động hiển thị khi load xong
      * @param activity Activity để hiển thị interstitial ad
+     * @param showOverlay Hiển thị overlay quay vòng chờ load (tránh user chạm xung quanh)
      */
-    fun loadThenShow(activity: Activity) {
+    fun loadThenShow(activity: Activity, showOverlay: Boolean = false) {
+        if (isAdLoaded()) {
+            show(activity)
+            return
+        }
+
         pendingActivity = activity
+        if (showOverlay) {
+            OzLoadingDialog.showFullScreenLoadingDialog(activity)
+            
+            // Safety timeout for the loader overlay in case AdMob hangs
+            android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                OzLoadingDialog.hideFullScreenLoadingDialog()
+            }, 10000L)
+        }
         load()
     }
 
@@ -182,11 +201,19 @@ class AdmobInterstitial(
     }
 
     /**
-     * Kiểm tra xem ad đã được load chưa
-     * @return true nếu ad đã load, false nếu chưa
+     * Kiểm tra xem ad đã được load và chưa bị hết hạn chưa (hết hạn sau 4 tiếng)
+     * @return true nếu ad đã load và còn hợp lệ, false nếu chưa hoặc đã hết hạn
      */
     fun isAdLoaded(): Boolean {
-        return isLoaded && interstitialAd != null
+        return isLoaded && interstitialAd != null && !isAdExpired()
+    }
+
+    /**
+     * Kiểm tra xem ad đã hết hạn chưa (AdMob interstitial hết hạn sau 4 tiếng)
+     */
+    private fun isAdExpired(): Boolean {
+        val fourHoursInMillis = 4L * 60L * 60L * 1000L
+        return (System.currentTimeMillis() - loadTime) >= fourHoursInMillis
     }
 }
 

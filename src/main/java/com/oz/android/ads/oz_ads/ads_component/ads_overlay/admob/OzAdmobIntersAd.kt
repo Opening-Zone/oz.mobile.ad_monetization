@@ -9,6 +9,11 @@ import com.oz.android.utils.listener.OzAdListener
 import com.oz.android.ads.network.admobs.ads_component.interstitial.AdmobInterstitial
 import com.oz.android.ads.oz_ads.ads_component.ads_overlay.OverlayAds
 import com.oz.android.utils.listener.OzAdError
+import com.oz.android.utils.OzLoadingDialog
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 /**
  * Implementation of OverlayAds for AdMob Interstitial ads.
@@ -69,10 +74,20 @@ open class OzAdmobIntersAd @JvmOverloads constructor(
      * Load and then show the interstitial ad.
      * Convenience method that sets activity and triggers loadThenShow().
      * @param activity The activity context required to show the ad.
+     * @param showOverlay Show a loading overlay while waiting for ad loads.
      */
-    fun loadThenShow(activity: Activity) {
+    fun loadThenShow(activity: Activity, showOverlay: Boolean = false) {
         adKey?.let { key ->
             setActivity(key, activity)
+            if (showOverlay) {
+                OzLoadingDialog.showFullScreenLoadingDialog(activity)
+
+                // Launch coroutine on the Main thread
+                CoroutineScope(Dispatchers.Main).launch {
+                    delay(10_000L) // 10 seconds
+                    OzLoadingDialog.hideFullScreenLoadingDialog()
+                }
+            }
             loadThenShow()
         } ?: Log.w(TAG, "loadThenShow() called but no adKey is set. Use setAdUnitId() first.")
     }
@@ -93,11 +108,13 @@ open class OzAdmobIntersAd @JvmOverloads constructor(
         // Create listener that bridges AdmobInterstitial callbacks to OzAds callbacks
         val intersListener = object : OzAdListener<AdmobInterstitial>() {
             override fun onAdLoaded(ad: AdmobInterstitial) {
+                OzLoadingDialog.hideFullScreenLoadingDialog()
                 // Bridge to OzAds.onAdLoaded() - handles state management
                 this@OzAdmobIntersAd.onAdLoaded(key, ad)
             }
 
             override fun onAdFailedToLoad(error: OzAdError) {
+                OzLoadingDialog.hideFullScreenLoadingDialog()
                 // Bridge to OzAds.onAdLoadFailed() - handles state management
                 this@OzAdmobIntersAd.onAdLoadFailed(key, error.message)
             }
@@ -143,6 +160,7 @@ open class OzAdmobIntersAd @JvmOverloads constructor(
      * Activity must be set via setActivity() before calling showAds().
      */
     override fun onShowAds(key: String, ad: AdmobInterstitial) {
+        OzLoadingDialog.hideFullScreenLoadingDialog()
         val activity = currentActivity
         if (activity == null) {
             Log.e(TAG, "Cannot show interstitial ad for key '$key' because activity is null. Call setActivity() first.")
