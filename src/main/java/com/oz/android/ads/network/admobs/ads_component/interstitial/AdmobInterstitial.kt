@@ -201,7 +201,7 @@ class AdmobInterstitial(
     }
 
     /**
-     * Kiểm tra xem ad đã được load và chưa bị hết hạn chưa (hết hạn sau 4 tiếng)
+     * Kiểm tra xem ad đã được load và chưa bị hết hạn chưa (hết hạn sau 1 tiếng)
      * @return true nếu ad đã load và còn hợp lệ, false nếu chưa hoặc đã hết hạn
      */
     fun isAdLoaded(): Boolean {
@@ -212,8 +212,7 @@ class AdmobInterstitial(
      * Kiểm tra xem ad đã hết hạn chưa (AdMob interstitial hết hạn sau 4 tiếng)
      */
     private fun isAdExpired(): Boolean {
-        val fourHoursInMillis = 4L * 60L * 60L * 1000L
-        return (System.currentTimeMillis() - loadTime) >= fourHoursInMillis
+        return (System.currentTimeMillis() - loadTime) >= 1L * 60L * 60L * 1000L
     }
 }
 
