@@ -115,7 +115,7 @@ open class OzAdmobNativeAd @JvmOverloads constructor(
             if (resId != 0) {
                 try {
                     // Inflate a dummy view to check height
-                    val view = LayoutInflater.from(context).inflate(resId, null)
+                    val view = LayoutInflater.from(context).inflate(resId, this, false)
                     // If the root view has a fixed height, use it
                     if (view.layoutParams != null && view.layoutParams.height > 0) {
                         heightPx = view.layoutParams.height
@@ -152,7 +152,7 @@ open class OzAdmobNativeAd @JvmOverloads constructor(
             val resId = layoutId
             Log.d(TAG, "Inflating NativeAdView from layout ID: $resId")
             try {
-                val inflatedView = LayoutInflater.from(context).inflate(resId, null)
+                val inflatedView = LayoutInflater.from(context).inflate(resId, this, false)
                 if (inflatedView is NativeAdView) {
                     nativeAdView = inflatedView
                     bindStandardViews(nativeAdView)
