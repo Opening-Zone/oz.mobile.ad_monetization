@@ -12,6 +12,7 @@ import com.google.android.gms.ads.OnUserEarnedRewardListener
 import com.google.android.gms.ads.rewarded.RewardedAd
 import com.google.android.gms.ads.rewarded.RewardedAdLoadCallback
 import com.oz.android.ads.network.admobs.ads_component.AdmobBase
+import com.oz.android.ads.network.admobs.ads_component.toOzError
 import com.oz.android.utils.listener.OzAdListener
 
 /**
@@ -57,6 +58,9 @@ class AdmobReward(
                     rewardedAd = ad
                     isLoaded = true
                     adIsLoading = false
+                    
+                    rewardedAd?.onPaidEventListener = getOnPaidListener(rewardedAd!!.responseInfo)
+                    listener?.onAdLoaded(this@AdmobReward)
 
                     // Setup FullScreenContentCallback
                     setupFullScreenContentCallback(ad)
@@ -78,6 +82,8 @@ class AdmobReward(
                     adIsLoading = false
                     pendingActivity = null
                     pendingRewardCallback = null
+                    
+                    listener?.onAdFailedToLoad(adError.toOzError())
                 }
             }
         )
@@ -154,6 +160,7 @@ class AdmobReward(
                 // don't show the ad a second time
                 rewardedAd = null
                 isLoaded = false
+                listener?.onAdDismissedFullScreenContent()
             }
 
             override fun onAdFailedToShowFullScreenContent(adError: AdError) {
@@ -163,21 +170,25 @@ class AdmobReward(
                 // don't show the ad a second time
                 rewardedAd = null
                 isLoaded = false
+                listener?.onAdFailedToShowFullScreenContent(adError.toOzError())
             }
 
             override fun onAdShowedFullScreenContent() {
                 // Called when fullscreen content is shown
                 Log.d(TAG, "Ad showed fullscreen content")
+                listener?.onAdShowedFullScreenContent()
             }
 
             override fun onAdImpression() {
                 // Called when an impression is recorded for an ad
                 Log.d(TAG, "Ad recorded an impression")
+                listener?.onAdImpression()
             }
 
             override fun onAdClicked() {
                 // Called when ad is clicked
                 Log.d(TAG, "Ad was clicked")
+                listener?.onAdClicked()
             }
         }
     }
