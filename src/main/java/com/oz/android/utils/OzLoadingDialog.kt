@@ -15,6 +15,10 @@ object OzLoadingDialog {
 
     private var loadingDialog: Dialog? = null
 
+    fun isShowing(): Boolean {
+        return loadingDialog?.isShowing == true
+    }
+
     fun showFullScreenLoadingDialog(activity: Activity) {
         if (loadingDialog?.isShowing == true) return
 

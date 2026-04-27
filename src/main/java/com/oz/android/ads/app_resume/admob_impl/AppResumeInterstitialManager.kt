@@ -8,6 +8,8 @@ import com.oz.android.ads.app_resume.AppLifecycleAdManager
 import com.oz.android.utils.listener.OzAdError
 import com.oz.android.utils.listener.OzAdListener
 import com.oz.android.wrapper.OzAdmobIntersAd
+import com.oz.android.wrapper.OzAdsManager
+import com.oz.android.utils.OzLoadingDialog
 
 /**
  * App Resume Ads Manager using Interstitial Ads
@@ -89,6 +91,12 @@ class AppResumeInterstitialManager private constructor() :
      * Show interstitial ad
      */
     override fun showAd(activity: Activity, onShowComplete: () -> Unit) {
+        if (OzAdsManager.getInstance().isFullScreenAdShowing.value || OzLoadingDialog.isShowing()) {
+            Log.d(TAG, "Another fullscreen ad or loading dialog is showing. Skipping app resume ad.")
+            onShowComplete()
+            return
+        }
+
         if (isAdReady()) {
             interstitialAd?.show(activity)
         } else {
