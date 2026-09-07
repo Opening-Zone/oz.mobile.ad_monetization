@@ -2,11 +2,9 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.gradle.api.publish.PublishingExtension
 import java.util.Properties
 import java.util.Base64
-import java.io.ByteArrayOutputStream
 
 plugins {
     alias(libs.plugins.android.library)
-    alias(libs.plugins.kotlin.android)
     id("maven-publish")
     id("signing")
 }
@@ -75,16 +73,16 @@ android {
     //noinspection UseTomlInstead
     dependencies {
         // AndroidX
-        implementation("androidx.appcompat:appcompat:1.7.1")
-        implementation("androidx.core:core-ktx:1.17.0")
-        implementation("androidx.constraintlayout:constraintlayout:2.2.1")
+        implementation("androidx.appcompat:appcompat:1.8.0")
+        implementation("androidx.core:core-ktx:1.19.0")
+        implementation("androidx.constraintlayout:constraintlayout:2.2.2")
         implementation("androidx.window:window:1.5.1")
-        implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.10.0")
-        implementation("androidx.lifecycle:lifecycle-process:2.10.0")
+        implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.11.0")
+        implementation("androidx.lifecycle:lifecycle-process:2.11.0")
 
 
         // Kotlin Coroutines
-        implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
+        implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0")
 
         // Google Play Services Ads + UMP
         api("com.google.android.gms:play-services-ads:25.4.0")
@@ -199,7 +197,7 @@ afterEvaluate {
         val hasSigningKey = project.hasProperty("signing.keyId") || 
                              project.hasProperty("signing.secretKeyRingFile")
                              
-        val signing = extensions.getByType<org.gradle.plugins.signing.SigningExtension>()
+        val signing = extensions.getByType<SigningExtension>()
         if (hasInMemoryKey) {
             signing.useInMemoryPgpKeys(gpgKeyId, gpgKey, gpgPassword)
             signing.sign(extensions.getByType<PublishingExtension>().publications["release"])
@@ -244,24 +242,17 @@ tasks.register("publishBundleToSonatype") {
         
         println("Uploading bundle ${zipFile.name} to Sonatype Central...")
         val base64Auth = Base64.getEncoder().encodeToString("$username:$password".toByteArray())
-        val outputStream = ByteArrayOutputStream()
-        val errorStream = ByteArrayOutputStream()
+        val process = ProcessBuilder(
+            "curl", "-s", "-w", "\nHTTP_STATUS:%{http_code}",
+            "-X", "POST",
+            "-H", "Authorization: Bearer $base64Auth",
+            "-F", "bundle=@${zipFile.absolutePath}",
+            "https://central.sonatype.com/api/v1/publisher/upload?publishingType=AUTOMATIC"
+        ).start()
         
-        project.exec {
-            commandLine(
-                "curl", "-s", "-w", "\nHTTP_STATUS:%{http_code}",
-                "-X", "POST",
-                "-H", "Authorization: Bearer $base64Auth",
-                "-F", "bundle=@${zipFile.absolutePath}",
-                "https://central.sonatype.com/api/v1/publisher/upload?publishingType=AUTOMATIC"
-            )
-            standardOutput = outputStream
-            errorOutput = errorStream
-            isIgnoreExitValue = true
-        }
-        
-        val output = outputStream.toString().trim()
-        val error = errorStream.toString().trim()
+        val output = process.inputStream.bufferedReader().readText().trim()
+        val error = process.errorStream.bufferedReader().readText().trim()
+        process.waitFor()
         
         println("Sonatype Response:\n$output")
         if (error.isNotEmpty()) {
