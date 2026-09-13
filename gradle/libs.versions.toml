@@ -35,8 +35,6 @@ mediationFacebook = "6.21.0.3"
 unityAds = "4.18.0"
 mediationUnity = "4.18.0.0"
 mediationApplovin = "13.6.2.0"
-appsflyer = "6.17.4"
-uxcam = "3.+"
 firebaseMessaging = "25.0.2"
 revenuecat = "10.8.0"
 
@@ -95,8 +93,6 @@ unity-ads = { group = "com.unity3d.ads", name = "unity-ads", version.ref = "unit
 mediation-unity = { group = "com.google.ads.mediation", name = "unity", version.ref = "mediationUnity" }
 mediation-applovin = { group = "com.google.ads.mediation", name = "applovin", version.ref = "mediationApplovin" }
 
-appsflyer = { group = "com.appsflyer", name = "af-android-sdk", version.ref = "appsflyer" }
-uxcam = { group = "com.uxcam", name = "uxcam", version.ref = "uxcam" }
 firebase-messaging = { group = "com.google.firebase", name = "firebase-messaging", version.ref = "firebaseMessaging" }
 revenuecat-purchases = { group = "com.revenuecat.purchases", name = "purchases", version.ref = "revenuecat" }
 
