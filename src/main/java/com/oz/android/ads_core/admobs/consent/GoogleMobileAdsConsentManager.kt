@@ -34,7 +34,7 @@ import com.oz.android.utils.event.OzEventLogger
  * Handles GDPR, CCPA, and regional user consent gathering, consent state updates,
  * analytics tracking, and presentation of privacy option forms.
  */
-class GoogleMobileAdsConsentManager private constructor(context: Context) {
+class GoogleMobileAdsConsentManager private constructor(private val context: Context) {
 
     private val consentInformation: ConsentInformation =
         UserMessagingPlatform.getConsentInformation(context)
@@ -54,10 +54,11 @@ class GoogleMobileAdsConsentManager private constructor(context: Context) {
     /**
      * Indicates whether the current consent status allows sending ad requests.
      *
-     * Delegates to [ConsentInformation.canRequestAds].
+     * Non-EU users bypass UMP consent and can request ads immediately.
+     * EU/EEA/UK/CH users delegate to [ConsentInformation.canRequestAds].
      */
     val canRequestAds: Boolean
-        get() = consentInformation.canRequestAds()
+        get() = !RegionHelper.isEuRegion(context) || consentInformation.canRequestAds()
 
     /**
      * Indicates whether the user is required to have a privacy options entry point (e.g. Settings menu)
@@ -81,6 +82,11 @@ class GoogleMobileAdsConsentManager private constructor(context: Context) {
         activity: Activity,
         onConsentGatheringCompleteListener: OnConsentGatheringCompleteListener,
     ) {
+        if (!RegionHelper.isEuRegion(activity)) {
+            OzEventLogger.logConsentAdsReady(activity)
+            onConsentGatheringCompleteListener.consentGatheringComplete(null)
+            return
+        }
         val paramsBuilder = ConsentRequestParameters.Builder()
         if (BuildConfig.DEBUG) {
             val debugSettings = ConsentDebugSettings.Builder(activity)
