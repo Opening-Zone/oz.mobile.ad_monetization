@@ -2,10 +2,13 @@ package com.oz.android.ads_core.admobs.reward
 
 import android.app.Activity
 import android.content.Context
-import com.google.android.gms.ads.OnUserEarnedRewardListener
 import com.oz.android.OzAdsManager
 import com.oz.android.utils.config.AdsCoreType
 import com.oz.android.utils.listener.OzAdListener
+
+fun interface OzRewardCallback {
+    fun onUserEarnedReward(type: String, amount: Int)
+}
 
 /**
  * Interface representing Rewarded ads.
@@ -13,8 +16,8 @@ import com.oz.android.utils.listener.OzAdListener
  */
 interface AdmobReward {
     fun load()
-    fun show(activity: Activity, rewardCallback: OnUserEarnedRewardListener)
-    fun loadThenShow(activity: Activity, rewardCallback: OnUserEarnedRewardListener)
+    fun show(activity: Activity, rewardCallback: OzRewardCallback)
+    fun loadThenShow(activity: Activity, rewardCallback: OzRewardCallback)
     fun isAdLoaded(): Boolean
 
     companion object {

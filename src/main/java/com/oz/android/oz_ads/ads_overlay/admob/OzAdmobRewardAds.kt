@@ -3,17 +3,12 @@ package com.oz.android.oz_ads.ads_overlay.admob
 import android.app.Activity
 import android.content.Context
 import android.util.AttributeSet
-import com.google.android.gms.ads.OnUserEarnedRewardListener
+import com.oz.android.ads_core.admobs.reward.OzRewardCallback
 import com.oz.android.utils.OzLog
 import com.oz.android.ads_core.admobs.reward.AdmobReward
 import com.oz.android.oz_ads.ads_overlay.OverlayAds
-import com.oz.android.utils.OzLoadingDialog
 import com.oz.android.utils.listener.OzAdError
 import com.oz.android.utils.listener.OzAdListener
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 
 /**
  * Implementation of OverlayAds for AdMob Rewarded ads.
@@ -42,7 +37,7 @@ open class OzAdmobRewardAds @JvmOverloads constructor(
     // Single variables instead of Maps
     private var currentAdUnitId: String? = null
     private var currentActivity: Activity? = null
-    private var currentRewardCallback: OnUserEarnedRewardListener? = null
+    private var currentRewardCallback: OzRewardCallback? = null
 
     /**
      * Set ad unit ID for a specific placement key.
@@ -70,12 +65,27 @@ open class OzAdmobRewardAds @JvmOverloads constructor(
      * Convenience method that sets activity and triggers showAds().
      * @param activity The activity context required to show the ad.
      */
-    fun show(activity: Activity, rewardCallback: OnUserEarnedRewardListener) {
+    fun show(activity: Activity, rewardCallback: OzRewardCallback) {
         adKey?.let { key ->
             setActivity(key, activity)
             this.currentRewardCallback = rewardCallback
             showAds(key)
         } ?: OzLog.w(TAG, "show() called but no adKey is set. Use setAdUnitId() first.")
+    }
+
+    fun show(activity: Activity, onRewardEarned: (type: String, amount: Int) -> Unit) {
+        show(activity, OzRewardCallback { type, amount -> onRewardEarned(type, amount) })
+    }
+
+    /**
+     * Parameterless loadThenShow override:
+     * Does not call OverlayAds.showLoading() so the SDK overlay dialog is not displayed.
+     */
+    override fun loadThenShow() {
+        adKey?.let { key ->
+            loadAd()
+            showAds(key)
+        } ?: OzLog.w(TAG, "loadThenShow() called but no adKey is set. Use setAdUnitId() first.")
     }
 
     /**
@@ -84,21 +94,20 @@ open class OzAdmobRewardAds @JvmOverloads constructor(
      * @param activity The activity context required to show the ad.
      * @param showOverlay Show a loading overlay while waiting for ad loads.
      */
-    fun loadThenShow(activity: Activity, rewardCallback: OnUserEarnedRewardListener, showOverlay: Boolean = false) {
+    fun loadThenShow(activity: Activity, rewardCallback: OzRewardCallback, showOverlay: Boolean = false) {
         adKey?.let { key ->
             setActivity(key, activity)
             this.currentRewardCallback = rewardCallback
             if (showOverlay) {
-                OzLoadingDialog.showFullScreenLoadingDialog(activity)
-
-                // Launch coroutine on the Main thread
-                CoroutineScope(Dispatchers.Main).launch {
-                    delay(10_000L) // 10 seconds
-                    OzLoadingDialog.hideFullScreenLoadingDialog()
-                }
+                showLoading()
             }
-            loadThenShow()
+            loadAd()
+            showAds(key)
         } ?: OzLog.w(TAG, "loadThenShow() called but no adKey is set. Use setAdUnitId() first.")
+    }
+
+    fun loadThenShow(activity: Activity, showOverlay: Boolean = false, onRewardEarned: (type: String, amount: Int) -> Unit) {
+        loadThenShow(activity, OzRewardCallback { type, amount -> onRewardEarned(type, amount) }, showOverlay)
     }
 
     /**
@@ -117,13 +126,13 @@ open class OzAdmobRewardAds @JvmOverloads constructor(
         // Create listener that bridges AdmobReward callbacks to OzAds callbacks
         val rewardListener = object : OzAdListener<AdmobReward>() {
             override fun onAdLoaded(ad: AdmobReward) {
-                OzLoadingDialog.hideFullScreenLoadingDialog()
+                hideLoading()
                 // Bridge to OzAds.onAdLoaded() - handles state management
                 this@OzAdmobRewardAds.onAdLoaded(key, ad)
             }
 
             override fun onAdFailedToLoad(error: OzAdError) {
-                OzLoadingDialog.hideFullScreenLoadingDialog()
+                hideLoading()
                 // Bridge to OzAds.onAdLoadFailed() - handles state management
                 this@OzAdmobRewardAds.onAdLoadFailed(key, error.message, error.code)
             }
@@ -169,7 +178,7 @@ open class OzAdmobRewardAds @JvmOverloads constructor(
      * Activity and rewardCallback must be set before calling showAds().
      */
     override fun onShowAds(key: String, ad: AdmobReward) {
-        OzLoadingDialog.hideFullScreenLoadingDialog()
+        hideLoading()
         val activity = currentActivity
         val callback = currentRewardCallback
         

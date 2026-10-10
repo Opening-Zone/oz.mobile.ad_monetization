@@ -66,25 +66,27 @@ class AdmobStandardReward(
         )
     }
 
-    override fun show(activity: Activity, rewardCallback: OnUserEarnedRewardListener) {
+    override fun show(activity: Activity, rewardCallback: OzRewardCallback) {
         val currentAd = rewardedAd
         if (currentAd == null) {
             OzLog.w(TAG, "RewardedAd is null. Call load() first")
             return
         }
 
-        currentAd.show(activity, rewardCallback)
+        currentAd.show(activity) { rewardItem ->
+            rewardCallback.onUserEarnedReward(rewardItem.type, rewardItem.amount)
+        }
         OzLog.d(TAG, "Rewarded ad displayed")
     }
 
     override fun loadThenShow() {
         OzLog.w(
             TAG,
-            "loadThenShow() called without activity and callback. Use loadThenShow(activity: Activity, callback: OnUserEarnedRewardListener) for reward ads"
+            "loadThenShow() called without activity and callback. Use loadThenShow(activity: Activity, callback: OzRewardCallback) for reward ads"
         )
     }
 
-    override fun loadThenShow(activity: Activity, rewardCallback: OnUserEarnedRewardListener) {
+    override fun loadThenShow(activity: Activity, rewardCallback: OzRewardCallback) {
         load()
     }
 

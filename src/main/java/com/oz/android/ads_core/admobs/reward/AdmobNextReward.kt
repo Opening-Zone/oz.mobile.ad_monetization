@@ -78,7 +78,7 @@ class AdmobNextReward(
         )
     }
 
-    override fun show(activity: Activity, rewardCallback: com.google.android.gms.ads.OnUserEarnedRewardListener) {
+    override fun show(activity: Activity, rewardCallback: OzRewardCallback) {
         val showRunnable = Runnable {
             val currentAd = nextGenAd
             if (currentAd == null) {
@@ -88,13 +88,9 @@ class AdmobNextReward(
 
             currentAd.show(activity, object : OnUserEarnedRewardListener {
                 override fun onUserEarnedReward(reward: RewardItem) {
-                    val gmsRewardItem = object : com.google.android.gms.ads.rewarded.RewardItem {
-                        override val type: String = reward.type
-                        override val amount: Int = reward.amount
-                    }
                     OzEventLogger.logAdRewardEarned(context, adUnitId, reward.type, reward.amount)
                     // Reward callback: called on GMA BG thread — caller decides thread.
-                    rewardCallback.onUserEarnedReward(gmsRewardItem)
+                    rewardCallback.onUserEarnedReward(reward.type, reward.amount)
                 }
             })
             OzLog.d(TAG, "Rewarded ad displayed (Next-Gen)")
@@ -111,11 +107,11 @@ class AdmobNextReward(
     override fun loadThenShow() {
         OzLog.w(
             TAG,
-            "loadThenShow() called without activity and callback. Use loadThenShow(activity: Activity, callback: OnUserEarnedRewardListener) for reward ads"
+            "loadThenShow() called without activity and callback. Use loadThenShow(activity: Activity, callback: OzRewardCallback) for reward ads"
         )
     }
 
-    override fun loadThenShow(activity: Activity, rewardCallback: com.google.android.gms.ads.OnUserEarnedRewardListener) {
+    override fun loadThenShow(activity: Activity, rewardCallback: OzRewardCallback) {
         load()
     }
 
