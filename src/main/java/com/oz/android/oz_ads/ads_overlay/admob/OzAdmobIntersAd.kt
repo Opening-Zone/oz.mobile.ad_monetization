@@ -72,6 +72,17 @@ open class OzAdmobIntersAd @JvmOverloads constructor(
     }
 
     /**
+     * Parameterless loadThenShow override:
+     * Does not call OverlayAds.showLoading() so the SDK overlay dialog is not displayed.
+     */
+    override fun loadThenShow() {
+        adKey?.let { key ->
+            loadAd()
+            showAds(key)
+        } ?: OzLog.w(TAG, "loadThenShow() called but no adKey is set. Use setAdUnitId() first.")
+    }
+
+    /**
      * Load and then show the interstitial ad.
      * Convenience method that sets activity and triggers loadThenShow().
      * @param activity The activity context required to show the ad.
@@ -81,13 +92,7 @@ open class OzAdmobIntersAd @JvmOverloads constructor(
         adKey?.let { key ->
             setActivity(key, activity)
             if (showOverlay) {
-                OzLoadingDialog.showFullScreenLoadingDialog(activity)
-
-                // Launch coroutine on the Main thread
-                CoroutineScope(Dispatchers.Main).launch {
-                    delay(10_000L) // 10 seconds
-                    OzLoadingDialog.hideFullScreenLoadingDialog()
-                }
+                showLoading()
             }
             loadThenShow()
         } ?: OzLog.w(TAG, "loadThenShow() called but no adKey is set. Use setAdUnitId() first.")
@@ -188,6 +193,8 @@ open class OzAdmobIntersAd @JvmOverloads constructor(
 
     override fun onAdShowBlocked(key: String, reason: String?) {
         super.onAdShowBlocked(key, reason)
+        hideLoading()
+        OzLoadingDialog.hideFullScreenLoadingDialog()
         currentActivity = null
         listener?.onNextAction()
         OzLog.d(TAG, "Cleaned up activity reference for key: $key after show blocked")
@@ -195,16 +202,22 @@ open class OzAdmobIntersAd @JvmOverloads constructor(
 
     override fun onAdDismissed(key: String) {
         super.onAdDismissed(key)
+        hideLoading()
+        OzLoadingDialog.hideFullScreenLoadingDialog()
         currentActivity = null
         OzLog.d(TAG, "Cleaned up activity reference for key: $key")
     }
 
     override fun onAdLoadFailed(key: String, message: String?, errorCode: Int?) {
         super.onAdLoadFailed(key, message, errorCode)
+        hideLoading()
+        OzLoadingDialog.hideFullScreenLoadingDialog()
     }
 
     override fun onAdShowFailed(key: String, message: String?, errorCode: Int?) {
         super.onAdShowFailed(key, message, errorCode)
+        hideLoading()
+        OzLoadingDialog.hideFullScreenLoadingDialog()
         currentActivity = null
         listener?.onNextAction()
         OzLog.d(TAG, "Cleaned up activity reference for key: $key after show failed")
@@ -214,6 +227,8 @@ open class OzAdmobIntersAd @JvmOverloads constructor(
      * Override destroy to clean up
      */
     override fun destroy() {
+        hideLoading()
+        OzLoadingDialog.hideFullScreenLoadingDialog()
         currentActivity = null
         currentAdUnitId = null
         super.destroy()

@@ -171,6 +171,7 @@ abstract class OverlayAds<AdType> @JvmOverloads constructor(
      */
     override fun onAdDismissed(key: String) {
         super.onAdDismissed(key)
+        hideLoading()
         updateLastClosedTimeGlobal()
         OzAdsManager.getInstance().onAdsFullScreenDismissed()
         OzLog.d(TAG, "Ad dismissed for key: $key. Global timer updated for ${getAdCategory()}")
@@ -213,15 +214,22 @@ abstract class OverlayAds<AdType> @JvmOverloads constructor(
      */
     fun hideLoading() {
         val action = Runnable {
-            loadingDialog?.dismiss()
-            loadingDialog = null
+            try {
+                if (loadingDialog?.isShowing == true) {
+                    loadingDialog?.dismiss()
+                }
+            } catch (e: Exception) {
+                OzLog.e(TAG, "Failed to dismiss loading dialog: ${e.message}")
+            } finally {
+                loadingDialog = null
+            }
             loadingIndicator?.visibility = GONE
             OzLog.d(TAG, "Loading indicator hidden")
         }
         if (Looper.myLooper() == Looper.getMainLooper()) {
             action.run()
         } else {
-            post(action)
+            android.os.Handler(Looper.getMainLooper()).post(action)
         }
     }
 
