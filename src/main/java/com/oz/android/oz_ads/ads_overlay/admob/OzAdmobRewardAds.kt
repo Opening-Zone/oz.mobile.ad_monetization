@@ -123,44 +123,48 @@ open class OzAdmobRewardAds @JvmOverloads constructor(
             return null
         }
 
-        // Create listener that bridges AdmobReward callbacks to OzAds callbacks
+        // Create listener that bridges AdmobReward callbacks to OzAds callbacks and active listener
         val rewardListener = object : OzAdListener<AdmobReward>() {
             override fun onAdLoaded(ad: AdmobReward) {
                 hideLoading()
                 // Bridge to OzAds.onAdLoaded() - handles state management
                 this@OzAdmobRewardAds.onAdLoaded(key, ad)
+                this@OzAdmobRewardAds.listener?.onAdLoaded(ad)
             }
 
             override fun onAdFailedToLoad(error: OzAdError) {
                 hideLoading()
                 // Bridge to OzAds.onAdLoadFailed() - handles state management
                 this@OzAdmobRewardAds.onAdLoadFailed(key, error.message, error.code)
+                this@OzAdmobRewardAds.listener?.onAdFailedToLoad(error)
             }
 
             override fun onAdShowedFullScreenContent() {
                 // Bridge to OzAds.onAdShown() - handles state management
                 this@OzAdmobRewardAds.onAdShown(key)
+                this@OzAdmobRewardAds.listener?.onAdShowedFullScreenContent()
             }
 
             override fun onAdDismissedFullScreenContent() {
                 // Bridge to OzAds.onAdDismissed() - handles state management and cleanup
                 this@OzAdmobRewardAds.onAdDismissed(key)
+                this@OzAdmobRewardAds.listener?.onAdDismissedFullScreenContent()
             }
 
             override fun onAdFailedToShowFullScreenContent(adError: OzAdError) {
                 // Bridge to OzAds.onAdShowFailed() - handles state management
                 this@OzAdmobRewardAds.onAdShowFailed(key, adError.message, adError.code)
+                this@OzAdmobRewardAds.listener?.onAdFailedToShowFullScreenContent(adError)
             }
 
             override fun onAdClicked() {
                 // Bridge to OzAds.onAdClicked()
                 this@OzAdmobRewardAds.onAdClicked(key)
+                this@OzAdmobRewardAds.listener?.onAdClicked()
             }
         }
 
-        val mergedListener = rewardListener.merge(listener)
-
-        return AdmobReward.create(context, adUnitId, mergedListener)
+        return AdmobReward.create(context, adUnitId, rewardListener)
     }
 
     /**

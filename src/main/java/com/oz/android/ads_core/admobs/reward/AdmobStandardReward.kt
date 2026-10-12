@@ -2,6 +2,8 @@ package com.oz.android.ads_core.admobs.reward
 
 import android.app.Activity
 import android.content.Context
+import android.os.Handler
+import android.os.Looper
 import com.oz.android.utils.OzLog
 import com.google.android.gms.ads.AdError
 import com.google.android.gms.ads.AdRequest
@@ -23,6 +25,7 @@ class AdmobStandardReward(
     listener: OzAdListener<AdmobReward>? = null
 ) : AdmobBase<AdmobReward>(context, adUnitId, listener), AdmobReward {
     private var rewardedAd: RewardedAd? = null
+    private val mainHandler = Handler(Looper.getMainLooper())
 
     companion object {
         private const val TAG = "AdmobStandardReward"
@@ -44,16 +47,19 @@ class AdmobStandardReward(
                     rewardedAd = ad
                     
                     rewardedAd?.onPaidEventListener = getOnPaidListener(rewardedAd!!.responseInfo)
-                    listener?.onAdLoaded(this@AdmobStandardReward)
-
                     setupFullScreenContentCallback(ad)
+                    mainHandler.post {
+                        listener?.onAdLoaded(this@AdmobStandardReward)
+                    }
                 }
 
                 override fun onAdFailedToLoad(adError: LoadAdError) {
                     OzLog.e(TAG, "Rewarded ad failed to load: ${adError.message}")
                     rewardedAd = null
-                    
-                    listener?.onAdFailedToLoad(adError.toOzError())
+                    val ozError = adError.toOzError()
+                    mainHandler.post {
+                        listener?.onAdFailedToLoad(ozError)
+                    }
                 }
             }
         )
@@ -67,16 +73,33 @@ class AdmobStandardReward(
     }
 
     override fun show(activity: Activity, rewardCallback: OzRewardCallback) {
-        val currentAd = rewardedAd
-        if (currentAd == null) {
-            OzLog.w(TAG, "RewardedAd is null. Call load() first")
-            return
+        val showRunnable = Runnable {
+            if (activity.isFinishing || activity.isDestroyed) {
+                OzLog.w(TAG, "Activity is finishing or destroyed. Cannot show reward ad")
+                return@Runnable
+            }
+
+            val currentAd = rewardedAd
+            if (currentAd == null) {
+                OzLog.w(TAG, "RewardedAd is null. Call load() first")
+                return@Runnable
+            }
+
+            setupFullScreenContentCallback(currentAd)
+
+            currentAd.show(activity) { rewardItem ->
+                mainHandler.post {
+                    rewardCallback.onUserEarnedReward(rewardItem.type, rewardItem.amount)
+                }
+            }
+            OzLog.d(TAG, "Rewarded ad displayed")
         }
 
-        currentAd.show(activity) { rewardItem ->
-            rewardCallback.onUserEarnedReward(rewardItem.type, rewardItem.amount)
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            showRunnable.run()
+        } else {
+            mainHandler.post(showRunnable)
         }
-        OzLog.d(TAG, "Rewarded ad displayed")
     }
 
     override fun loadThenShow() {
@@ -95,28 +118,39 @@ class AdmobStandardReward(
             override fun onAdDismissedFullScreenContent() {
                 OzLog.d(TAG, "Ad was dismissed")
                 rewardedAd = null
-                listener?.onAdDismissedFullScreenContent()
+                mainHandler.post {
+                    listener?.onAdDismissedFullScreenContent()
+                }
             }
 
             override fun onAdFailedToShowFullScreenContent(adError: AdError) {
                 OzLog.e(TAG, "Ad failed to show: ${adError.message}")
                 rewardedAd = null
-                listener?.onAdFailedToShowFullScreenContent(adError.toOzError())
+                val ozError = adError.toOzError()
+                mainHandler.post {
+                    listener?.onAdFailedToShowFullScreenContent(ozError)
+                }
             }
 
             override fun onAdShowedFullScreenContent() {
                 OzLog.d(TAG, "Ad showed fullscreen content")
-                listener?.onAdShowedFullScreenContent()
+                mainHandler.post {
+                    listener?.onAdShowedFullScreenContent()
+                }
             }
 
             override fun onAdImpression() {
                 OzLog.d(TAG, "Ad recorded an impression")
-                listener?.onAdImpression()
+                mainHandler.post {
+                    listener?.onAdImpression()
+                }
             }
 
             override fun onAdClicked() {
                 OzLog.d(TAG, "Ad was clicked")
-                listener?.onAdClicked()
+                mainHandler.post {
+                    listener?.onAdClicked()
+                }
             }
         }
     }

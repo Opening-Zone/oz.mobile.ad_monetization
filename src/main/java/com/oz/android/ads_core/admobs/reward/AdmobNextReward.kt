@@ -45,27 +45,21 @@ class AdmobNextReward(
             AdRequest.Builder(adUnitId).build(),
             object : AdLoadCallback<RewardedAd> {
                 override fun onAdLoaded(ad: RewardedAd) {
-                    // ── Runs on GMA background thread ──
-                    // State updates: no UI, safe on BG.
                     OzLog.d(TAG, "Rewarded ad loaded successfully (Next-Gen)")
                     nextGenAd = ad
-
-                    // setupNextGenFullScreenCallback only sets a property, safe on BG.
                     setupNextGenFullScreenCallback(ad)
-
-                    // Listener callback: called on GMA BG thread — caller decides thread.
-                    listener?.onAdLoaded(this@AdmobNextReward)
+                    mainHandler.post {
+                        listener?.onAdLoaded(this@AdmobNextReward)
+                    }
                 }
 
                 override fun onAdFailedToLoad(error: LoadAdError) {
-                    // ── Runs on GMA background thread ──
-                    // State cleanup: no UI, stays on BG.
                     OzLog.e(TAG, "Rewarded ad failed to load: ${error.message} (Next-Gen)")
                     nextGenAd = null
-
                     val ozError = error.toOzError()
-                    // Listener callback: called on GMA BG thread — caller decides thread.
-                    listener?.onAdFailedToLoad(ozError)
+                    mainHandler.post {
+                        listener?.onAdFailedToLoad(ozError)
+                    }
                 }
             }
         )
@@ -80,17 +74,25 @@ class AdmobNextReward(
 
     override fun show(activity: Activity, rewardCallback: OzRewardCallback) {
         val showRunnable = Runnable {
+            if (activity.isFinishing || activity.isDestroyed) {
+                OzLog.w(TAG, "Activity is finishing or destroyed (Next-Gen). Cannot show reward ad")
+                return@Runnable
+            }
+
             val currentAd = nextGenAd
             if (currentAd == null) {
                 OzLog.w(TAG, "RewardedAd is null (Next-Gen). Call load() first")
                 return@Runnable
             }
 
+            setupNextGenFullScreenCallback(currentAd)
+
             currentAd.show(activity, object : OnUserEarnedRewardListener {
                 override fun onUserEarnedReward(reward: RewardItem) {
                     OzEventLogger.logAdRewardEarned(context, adUnitId, reward.type, reward.amount)
-                    // Reward callback: called on GMA BG thread — caller decides thread.
-                    rewardCallback.onUserEarnedReward(reward.type, reward.amount)
+                    mainHandler.post {
+                        rewardCallback.onUserEarnedReward(reward.type, reward.amount)
+                    }
                 }
             })
             OzLog.d(TAG, "Rewarded ad displayed (Next-Gen)")
@@ -117,33 +119,42 @@ class AdmobNextReward(
 
     private fun setupNextGenFullScreenCallback(ad: RewardedAd) {
         ad.adEventCallback = object : RewardedAdEventCallback {
-            // All callbacks fire on GMA BG thread — callers decide their own threading.
             override fun onAdDismissedFullScreenContent() {
                 OzLog.d(TAG, "Ad was dismissed (Next-Gen)")
                 nextGenAd = null
-                listener?.onAdDismissedFullScreenContent()
+                mainHandler.post {
+                    listener?.onAdDismissedFullScreenContent()
+                }
             }
 
             override fun onAdFailedToShowFullScreenContent(error: FullScreenContentError) {
                 OzLog.e(TAG, "Ad failed to show: ${error.message} (Next-Gen)")
                 nextGenAd = null
                 val ozError = error.toOzError()
-                listener?.onAdFailedToShowFullScreenContent(ozError)
+                mainHandler.post {
+                    listener?.onAdFailedToShowFullScreenContent(ozError)
+                }
             }
 
             override fun onAdShowedFullScreenContent() {
                 OzLog.d(TAG, "Ad showed fullscreen content (Next-Gen)")
-                listener?.onAdShowedFullScreenContent()
+                mainHandler.post {
+                    listener?.onAdShowedFullScreenContent()
+                }
             }
 
             override fun onAdImpression() {
                 OzLog.d(TAG, "Ad recorded an impression (Next-Gen)")
-                listener?.onAdImpression()
+                mainHandler.post {
+                    listener?.onAdImpression()
+                }
             }
 
             override fun onAdClicked() {
                 OzLog.d(TAG, "Ad was clicked (Next-Gen)")
-                listener?.onAdClicked()
+                mainHandler.post {
+                    listener?.onAdClicked()
+                }
             }
 
             override fun onAdPaid(value: AdValue) {
