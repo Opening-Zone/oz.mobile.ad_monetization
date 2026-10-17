@@ -692,6 +692,7 @@ See [LICENSE.txt](LICENSE.txt) for full details.
 - [AdMob Policy](https://support.google.com/admob/answer/6128543)
 - [Android Lifecycle](https://developer.android.com/guide/components/activities/activity-lifecycle)
 - [Jetpack Compose](https://developer.android.com/jetpack/compose)
+- [AI Integration Skill & Runbook](.agents/skills/oz-ads-integration/SKILL.md)
 
 ---
 
